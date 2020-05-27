@@ -1,0 +1,188 @@
+﻿<Window x:Class="WpfApp1.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp1"
+    mc:Ignorable="d"
+
+    Title="MainWindow" SizeToContent="WidthAndHeight" WindowStartupLocation="Manual" Top="300" Left="300" >
+
+    <!--Converter used for price font color gradient -->
+    <Window.Resources>
+
+        <local:ColourConverter x:Key="colorChange"/>
+    </Window.Resources>
+
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="20"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="20"/>
+        </Grid.ColumnDefinitions>
+        
+        <!--DockPanel is used for docking menus at the top
+        Click Events invockes respective methods
+        -->
+        <DockPanel Grid.Row="0" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="9">
+            <Menu DockPanel.Dock="Top">
+                <MenuItem Header="_File">
+                    <MenuItem Header="_Open" Click="OnClickOpen"/>
+                    <Separator/>
+                    <MenuItem Header="_Exit" Click="OnClickExit"/>
+                </MenuItem>
+                <MenuItem Header="_Tools" >
+                    <MenuItem Header="_Remove Out of Stock" Click="OnClickRemoveNoBooks"/>
+                </MenuItem>
+            </Menu>
+        </DockPanel>
+        
+        <!--DataGrid Contains all specifications about datatable
+        'bl' is used as name and itemsource is set at mainwindow.xaml.cs inside OnClickOpen
+         -->
+        <DataGrid Name ="bl" CanUserAddRows="False" IsReadOnly="False" AutoGenerateColumns="False" 
+                  Grid.Row="1" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="6" 
+                  FontSize="15" FontFamily="Arial">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Book Title" Binding="{Binding BookTitle}" IsReadOnly="True"/>
+                
+                <DataGridTextColumn Header="Author" Binding="{Binding Author}" IsReadOnly="True"/>
+                
+                <!--Price in string is used as data-->
+                <DataGridTextColumn Header="Price" Binding="{Binding Price}" IsReadOnly="True">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType ="DataGridCell">
+                            <!--Font is set using foreground property-->
+                            <Setter Property="Foreground" Value="{Binding PriceRatio, Converter={StaticResource colorChange}}"/>
+                            
+                            <!--This module sets the cell formatting when the row is selected
+                            only for the Price column.
+                            dont know why I have to set it explicitly -->
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="{x:Null}"/>
+                                    <Setter Property="BorderBrush" Value="Black"/>
+                                    <Setter Property="BorderThickness" Value="0,1,0,1"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Published Year" Binding="{Binding Year}" IsReadOnly="True"/>
+                
+                <!-- Template Column is used to create Combobox
+                ItemSource indicates the list of items, Here single item in list format is used
+                Selected item is the item that appears initially
+                IsReadOnly not set to 'true' because it will also disable the ability to open combobox-->
+                <DataGridTemplateColumn Header="Binding Type">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox  ItemsSource="{Binding GetBindingSet}" SelectedItem="{Binding BindingType}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+ 
+                <!--Datagrid template is used for creating checkbox
+                StockFlag with boolean values is binded to IsChecked for creating ticks
+                IsHitTestvisible and Focusable is set to false which works like IsReadOnly
+                ScaleTransform enlarges CheckBox
+                -->
+                <DataGridTemplateColumn Header="In Stock" >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding StockFlag}" IsHitTestVisible="False" Focusable="False" HorizontalAlignment="Center">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.5" ScaleY="1.5"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                
+                <!-- Datagrid template is used to create button and tooltip
+                Tooltipservice.IsEnabled controls the visibility of tooltip 
+                which is set to false as initial value-->
+                <DataGridTemplateColumn Header="Description">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Name="btn" Background="RoyalBlue" BorderBrush="Black" BorderThickness="1" 
+                                  ClickMode="Press" ToolTipService.IsEnabled="False" Click="OnClickDescription"
+                                    Width="20" Height="20" >
+                                <Button.ToolTip>
+                                    <!--DataContext and Relative Source is used for binding 'Description' to tooltip.
+                                    which is needed only for the first time when tooltip is forcefully enabled using 
+                                    IsOpen inside 'OnClickDescription' (dont know how that works, stackoverflow is your friend)
+                                    -->
+                                    <ToolTip DataContext="{Binding Path=PlacementTarget.DataContext, RelativeSource={x:Static RelativeSource.Self}}"
+                                             HasDropShadow="True" x:Name="Tooltp" Placement="Right">
+                                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" MaxWidth="500"/>
+                                    </ToolTip>
+                                </Button.ToolTip>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+
+            <!-- Container changes the background color for row when StockFlag is false-->
+            <DataGrid.ItemContainerStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding StockFlag}" Value="False">
+                            <Setter Property="Background" Value="Lavender" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.ItemContainerStyle>
+            
+            <DataGrid.Resources>
+                
+                <!--This module sets the cell formatting when the row is selected-->
+                <Style TargetType="DataGridCell">
+                    <Style.Triggers>
+                        <Trigger Property="DataGridCell.IsSelected" Value="True">
+                            <Setter Property="Background" Value="{x:Null}"/>
+                            <Setter Property="BorderBrush" Value="Black"/>
+                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="BorderThickness" Value="0,1,0,1"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+                
+                <!--Changes Header Styling based on default style as reference-->
+                <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}" TargetType="{x:Type DataGridColumnHeader}" >
+                    <Setter Property="Background" Value="RoyalBlue"/>
+                    <Setter Property="Foreground" Value="Black" />
+                    <Setter Property="BorderBrush" Value="Black"/>
+                    <Setter Property="BorderThickness" Value="1 2 1 2"/>
+                    <Setter Property="Margin" Value="-1,-1,0,0" />
+                    <Setter Property="Height" Value="28" />
+                    <Setter Property="Padding" Value="5,0,5,5"/>
+                    <Setter Property="Width" Value="auto"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+    
+            </DataGrid.Resources>
+            
+
+
+        </DataGrid>
+    </Grid>
+
+  
+</Window>
